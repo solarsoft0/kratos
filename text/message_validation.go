@@ -20,6 +20,8 @@ const (
 	ErrorValidationLookupAlreadyUsed
 	ErrorValidationNoWebAuthnDevice
 	ErrorValidationNoLookup
+	ErrorValidationInvalidSmsCode
+	ErrorValidationSmsCodeSent
 )
 
 func NewValidationErrorGeneric(reason string) *Message {
@@ -160,6 +162,24 @@ func NewErrorValidationNoWebAuthnDevice() *Message {
 	return &Message{
 		ID:      ErrorValidationNoWebAuthnDevice,
 		Text:    "You have no WebAuthn device set up.",
+		Type:    Error,
+		Context: context(nil),
+	}
+}
+
+func NewErrorValidationInvalidSmsCode() *Message {
+	return &Message{
+		ID:      ErrorValidationInvalidSmsCode,
+		Text:    "The provided code is invalid, check for spelling mistakes in your code or phone number.",
+		Type:    Error,
+		Context: context(nil),
+	}
+}
+
+func NewErrorSmsCodeSent() *Message {
+	return &Message{
+		ID:      ErrorValidationSmsCodeSent,
+		Text:    "Access code has been sent.",
 		Type:    Error,
 		Context: context(nil),
 	}

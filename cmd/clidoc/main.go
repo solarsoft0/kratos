@@ -112,6 +112,8 @@ func init() {
 		"NewErrorValidationRecoveryTokenInvalidOrAlreadyUsed":     text.NewErrorValidationRecoveryTokenInvalidOrAlreadyUsed(),
 		"NewErrorValidationRecoveryRetrySuccess":                  text.NewErrorValidationRecoveryRetrySuccess(),
 		"NewErrorValidationRecoveryStateFailure":                  text.NewErrorValidationRecoveryStateFailure(),
+		"NewErrorValidationInvalidSmsCode":                        text.NewErrorValidationInvalidSmsCode(),
+		"NewErrorSmsCodeSent":                                     text.NewErrorSmsCodeSent(),
 	}
 }
 

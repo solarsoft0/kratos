@@ -1257,6 +1257,46 @@
                   }
                 }
               }
+            },
+            "sms": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "title": "Enables SMS Method",
+                  "default": false
+                },
+                "config": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "max_attempts": {
+                      "type": "integer",
+                      "title": "Maximum attempts to enter sms code",
+                      "default": 3
+                    },
+                    "lifespan": {
+                      "title": "Sms code Lifespan",
+                      "description": "Sets how long the sms code is valid. If expired, the user has to request new code.",
+                      "type": "string",
+                      "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
+                      "default": "1m",
+                      "examples": [
+                        "1h",
+                        "1m",
+                        "1s"
+                      ]
+                    },
+                    "sender_url": {
+                      "title": "SMS-sending service URL",
+                      "type": "string",
+                      "format": "uri",
+                      "examples": ["https://api.twilio.com/2010-04-01/Accounts/$$$TWILIO_ACCOUNT_SID$$$/Messages.json"]
+                    }
+                  }
+                }
+              }
             }
           }
         }

@@ -1,0 +1,1 @@
+CREATE INDEX "sms_codes_flow_id_idx" ON "sms_codes" (flow_id);

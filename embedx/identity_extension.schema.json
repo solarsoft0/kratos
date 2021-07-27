@@ -29,6 +29,15 @@
                       "type": "boolean"
                     }
                   }
+                },
+                "sms": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "identifier": {
+                      "type": "boolean"
+                    }
+                  }
                 }
               }
             },

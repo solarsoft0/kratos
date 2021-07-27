@@ -1,0 +1,10 @@
+create_table("sms_codes") {
+	t.Column("id", "uuid", {primary: true})
+
+  t.Column("phone", "string")
+  t.Column("code", "string")
+  t.Column("flow_id", "uuid")
+  t.Column("expires_at", "timestamp")
+}
+
+add_index("sms_codes", "flow_id", {"name": "sms_codes_flow_id_idx" })

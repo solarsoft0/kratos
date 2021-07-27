@@ -2,6 +2,8 @@ package driver
 
 import (
 	"context"
+	"github.com/benbjohnson/clock"
+	"github.com/ory/kratos/selfservice/strategy/sms"
 	"net/http"
 	"strings"
 	"sync"
@@ -64,9 +66,10 @@ import (
 )
 
 type RegistryDefault struct {
-	rwl sync.RWMutex
-	l   *logrusx.Logger
-	c   *config.Config
+	rwl   sync.RWMutex
+	l     *logrusx.Logger
+	c     *config.Config
+	clock clock.Clock
 
 	injectedSelfserviceHooks map[string]func(config.SelfServiceHook) interface{}
 
@@ -122,6 +125,10 @@ type RegistryDefault struct {
 	selfserviceVerificationExecutor *verification.HookExecutor
 
 	selfserviceLinkSender *link.Sender
+
+	selfserviceSmsAuthenticationService *sms.AuthenticationService
+	selfserviceSmsNotificationClient    sms.NotificationClient
+	selfserviceSmsRandomCodeGenerator   sms.RandomCodeGenerator
 
 	selfserviceRecoveryErrorHandler *recovery.ErrorHandler
 	selfserviceRecoveryHandler      *recovery.Handler
@@ -267,6 +274,7 @@ func (m *RegistryDefault) selfServiceStrategies() []interface{} {
 			totp.NewStrategy(m),
 			webauthn.NewStrategy(m),
 			lookup.NewStrategy(m),
+			sms.NewStrategy(m),
 		}
 	}
 
@@ -635,6 +643,10 @@ func (m *RegistryDefault) VerificationTokenPersister() link.VerificationTokenPer
 	return m.Persister()
 }
 
+func (m *RegistryDefault) CodePersister() sms.CodePersister {
+	return m.Persister()
+}
+
 func (m *RegistryDefault) Persister() persistence.Persister {
 	return m.persister
 }
@@ -668,4 +680,15 @@ func (m *RegistryDefault) PrometheusManager() *prometheus.MetricsManager {
 		m.pmm = prometheus.NewMetricsManagerWithPrefix("kratos", prometheus.HTTPMetrics, m.buildVersion, m.buildHash, m.buildDate)
 	}
 	return m.pmm
+}
+
+func (m *RegistryDefault) Clock() clock.Clock {
+	if m.clock == nil {
+		m.clock = clock.New()
+	}
+	return m.clock
+}
+
+func (m *RegistryDefault) WithRandomCodeGenerator(generator sms.RandomCodeGenerator) {
+	m.selfserviceSmsRandomCodeGenerator = generator
 }

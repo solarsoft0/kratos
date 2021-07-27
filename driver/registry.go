@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"github.com/ory/kratos/driver/clock"
 
 	prometheus "github.com/ory/x/prometheusx"
 	"github.com/ory/x/tracing"
@@ -60,6 +61,7 @@ type Registry interface {
 	Tracer(context.Context) *tracing.Tracer
 
 	config.Provider
+	clock.Provider
 	WithConfig(c *config.Config) Registry
 
 	x.CSRFProvider

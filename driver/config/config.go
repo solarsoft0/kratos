@@ -147,6 +147,9 @@ const (
 	ViperKeyWebAuthnRPOrigin                                 = "selfservice.methods.webauthn.config.rp.origin"
 	ViperKeyWebAuthnRPIcon                                   = "selfservice.methods.webauthn.config.rp.issuer"
 	ViperKeyVersion                                          = "version"
+	SmsMaxAttempts                                           = "selfservice.methods.sms.config.max_attempts"
+	SmsLifespan                                              = "selfservice.methods.sms.config.lifespan"
+	SmsSenderUrl                                             = "selfservice.methods.sms.config.sender_url"
 )
 
 const (
@@ -1087,4 +1090,16 @@ func (p *Config) getTSLCertificates(daemon, certBase64, keyBase64, certPath, key
 
 	p.l.Infof("TLS has not been configured for %s, skipping", daemon)
 	return nil
+}
+
+func (p *Config) SelfServiceSmsMaxAttempts() int {
+	return p.p.Int(ViperKeyVersion)
+}
+
+func (p *Config) SelfServiceSmsLifespan() time.Duration {
+	return p.p.DurationF(SmsLifespan, time.Minute)
+}
+
+func (p *Config) SelfServiceSmsSenderUrl() *url.URL {
+	return p.ParseURIOrFail(SmsSenderUrl)
 }
