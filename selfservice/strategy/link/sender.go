@@ -182,6 +182,9 @@ func (s *Sender) send(ctx context.Context, via string, t courier.EmailTemplate) 
 	case identity.AddressTypeEmail:
 		_, err := s.r.Courier(ctx).QueueEmail(ctx, t)
 		return err
+	case identity.AddressTypePhone:
+		_, err := s.r.Courier(ctx).QueueSMS(ctx, t)
+		return err
 	default:
 		return errors.Errorf("received unexpected via type: %s", via)
 	}

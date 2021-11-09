@@ -579,7 +579,7 @@ func (m *RegistryDefault) SetPersister(p persistence.Persister) {
 }
 
 func (m *RegistryDefault) Courier(ctx context.Context) *courier.Courier {
-	return courier.NewSMTP(m, m.Config(ctx))
+	return courier.NewCourier(m, m.Config(ctx))
 }
 
 func (m *RegistryDefault) ContinuityManager() continuity.Manager {
