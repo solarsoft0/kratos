@@ -63,6 +63,8 @@ const (
 	ViperKeyCourierSMTPFrom                                  = "courier.smtp.from_address"
 	ViperKeyCourierSMTPFromName                              = "courier.smtp.from_name"
 	ViperKeyCourierSMTPHeaders                               = "courier.smtp.headers"
+	ViperKeyCourierSMSHost                                   = "courier.sms.host"
+	ViperKeyCourierSMSFrom                                   = "courier.sms.from_name"
 	ViperKeySecretsDefault                                   = "secrets.default"
 	ViperKeySecretsCookie                                    = "secrets.cookie"
 	ViperKeySecretsCipher                                    = "secrets.cipher"
@@ -862,6 +864,14 @@ func (p *Config) CourierTemplatesRoot() string {
 
 func (p *Config) CourierSMTPHeaders() map[string]string {
 	return p.p.StringMap(ViperKeyCourierSMTPHeaders)
+}
+
+func (p *Config) CourierSMSHost() *url.URL {
+	return p.ParseURIOrFail(ViperKeyCourierSMSHost)
+}
+
+func (p *Config) CourierSMSFrom() string {
+	return p.p.StringF(ViperKeyCourierSMSFrom, "Kratos")
 }
 
 func splitUrlAndFragment(s string) (string, string) {

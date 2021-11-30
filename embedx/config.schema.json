@@ -1377,10 +1377,37 @@
             "connection_uri"
           ],
           "additionalProperties": false
+        },
+        "sms": {
+          "title": "SMS sender configuration",
+          "description": "Configures outgoing sms messages using HTTP protocol with generic SMS provider",
+          "type": "object",
+          "properties": {
+            "host": {
+              "title": "HTTP address of API endpoint",
+              "description": "This URL will be used to connect to SMS provider.",
+              "examples": [
+                "https://api.twillio.com/sms/send"
+              ],
+              "type": "string",
+              "pattern": "^https?:\\/\\/.*"
+            },
+            "from_name": {
+              "title": "SMS Sender Address",
+              "description": "The recipient of a sms will see this as the sender address.",
+              "type": "string",
+              "default": "ORY/Kratos"
+            }
+          },
+          "required": [
+            "host"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
-        "smtp"
+        "smtp",
+        "sms"
       ],
       "additionalProperties": false
     },
