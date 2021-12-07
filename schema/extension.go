@@ -20,6 +20,9 @@ type (
 			Password struct {
 				Identifier bool `json:"identifier"`
 			} `json:"password"`
+			Sms struct {
+				Identifier bool `json:"identifier"`
+			} `json:"sms"`
 			TOTP struct {
 				AccountName bool `json:"account_name"`
 			} `json:"totp"`

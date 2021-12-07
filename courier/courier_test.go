@@ -35,11 +35,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestNewSMTP(t *testing.T) {
-	setupConfig := func(stringURL string) *courier.Courier {
+	setupConfig := func(stringURL string) courier.Courier {
 		conf, _ := internal.NewFastRegistryWithMocks(t)
 		conf.MustSet(config.ViperKeyCourierSMTPURL, stringURL)
+		conf.MustSet(config.ViperKeyCourierSMSHost, "http://foo.url")
 		t.Logf("SMTP URL: %s", conf.CourierSMTPURL().String())
-		return courier.NewSMTP(nil, conf)
+		return courier.NewCourier(nil, conf)
 	}
 
 	if testing.Short() {
@@ -48,17 +49,17 @@ func TestNewSMTP(t *testing.T) {
 
 	//Should enforce StartTLS => dialer.StartTLSPolicy = gomail.MandatoryStartTLS and dialer.SSL = false
 	smtp := setupConfig("smtp://foo:bar@my-server:1234/")
-	assert.Equal(t, smtp.Dialer.StartTLSPolicy, gomail.MandatoryStartTLS, "StartTLS not enforced")
-	assert.Equal(t, smtp.Dialer.SSL, false, "Implicit TLS should not be enabled")
+	assert.Equal(t, smtp.SmtpDialer().StartTLSPolicy, gomail.MandatoryStartTLS, "StartTLS not enforced")
+	assert.Equal(t, smtp.SmtpDialer().SSL, false, "Implicit TLS should not be enabled")
 
 	//Should enforce TLS => dialer.SSL = true
 	smtp = setupConfig("smtps://foo:bar@my-server:1234/")
-	assert.Equal(t, smtp.Dialer.SSL, true, "Implicit TLS should be enabled")
+	assert.Equal(t, smtp.SmtpDialer().SSL, true, "Implicit TLS should be enabled")
 
 	//Should allow cleartext => dialer.StartTLSPolicy = gomail.OpportunisticStartTLS and dialer.SSL = false
 	smtp = setupConfig("smtp://foo:bar@my-server:1234/?disable_starttls=true")
-	assert.Equal(t, smtp.Dialer.StartTLSPolicy, gomail.OpportunisticStartTLS, "StartTLS is enforced")
-	assert.Equal(t, smtp.Dialer.SSL, false, "Implicit TLS should not be enabled")
+	assert.Equal(t, smtp.SmtpDialer().StartTLSPolicy, gomail.OpportunisticStartTLS, "StartTLS is enforced")
+	assert.Equal(t, smtp.SmtpDialer().SSL, false, "Implicit TLS should not be enabled")
 }
 
 func TestSMTP(t *testing.T) {
@@ -74,6 +75,7 @@ func TestSMTP(t *testing.T) {
 	ctx := context.Background()
 
 	conf, reg := internal.NewFastRegistryWithMocks(t)
+	conf.MustSet(config.ViperKeyCourierSMSHost, "http://foo.url")
 	conf.MustSet(config.ViperKeyCourierSMTPURL, smtp)
 	conf.MustSet(config.ViperKeyCourierSMTPFrom, "test-stub@ory.sh")
 	reg.Logger().Level = logrus.TraceLevel
@@ -83,7 +85,7 @@ func TestSMTP(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	id, err := c.QueueEmail(ctx, templates.NewTestStub(conf, &templates.TestStubModel{
+	id, err := c.QueueEmail(ctx, templates.NewTestEmailStub(conf, &templates.TestEmailStubModel{
 		To:      "test-recipient-1@example.org",
 		Subject: "test-subject-1",
 		Body:    "test-body-1",
@@ -91,7 +93,7 @@ func TestSMTP(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, uuid.Nil, id)
 
-	id, err = c.QueueEmail(ctx, templates.NewTestStub(conf, &templates.TestStubModel{
+	id, err = c.QueueEmail(ctx, templates.NewTestEmailStub(conf, &templates.TestEmailStubModel{
 		To:      "test-recipient-2@example.org",
 		Subject: "test-subject-2",
 		Body:    "test-body-2",
@@ -105,7 +107,7 @@ func TestSMTP(t *testing.T) {
 	conf.MustSet(config.ViperKeyCourierSMTPHeaders+".test-stub-header2", "bar")
 	customerHeaders := conf.CourierSMTPHeaders()
 	require.Len(t, customerHeaders, 2)
-	id, err = c.QueueEmail(ctx, templates.NewTestStub(conf, &templates.TestStubModel{
+	id, err = c.QueueEmail(ctx, templates.NewTestEmailStub(conf, &templates.TestEmailStubModel{
 		To:      "test-recipient-3@example.org",
 		Subject: "test-subject-3",
 		Body:    "test-body-3",

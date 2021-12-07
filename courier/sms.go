@@ -2,6 +2,7 @@ package courier
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
@@ -24,10 +25,28 @@ func newSMS(c *config.Config) *smsClient {
 
 }
 
-func (c *Courier) QueueSMS(ctx context.Context, t EmailTemplate) (uuid.UUID, error) {
+func (c *courierImpl) QueueSMS(ctx context.Context, t SmsTemplate) (uuid.UUID, error) {
+	recipient, err := t.SmsRecipientPhone()
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	templateType, err := GetSmsTemplateType(t)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	templateData, err := json.Marshal(t)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
 	message := &Message{
-		Status: MessageStatusQueued,
-		Type:   MessageTypePhone,
+		Status:       MessageStatusQueued,
+		Type:         MessageTypePhone,
+		Recipient:    recipient,
+		TemplateType: templateType,
+		TemplateData: templateData,
 	}
 	if err := c.deps.CourierPersister().AddMessage(ctx, message); err != nil {
 		return uuid.Nil, err
@@ -36,13 +55,22 @@ func (c *Courier) QueueSMS(ctx context.Context, t EmailTemplate) (uuid.UUID, err
 	return message.ID, nil
 }
 
-func (c *Courier) dispatchSMS(ctx context.Context, msg Message) error {
+func (c *courierImpl) dispatchSMS(ctx context.Context, msg Message) error {
 	from := c.deps.Config(ctx).CourierSMSFrom()
+
+	tmpl, err := NewSmsTemplateFromMessage(c.deps.Config(ctx), msg)
+	if err != nil {
+		return err
+	}
+	body, err := tmpl.SmsBody()
+	if err != nil {
+		return err
+	}
 
 	v := url.Values{}
 	v.Set("To", msg.Recipient)
 	v.Set("From", from)
-	v.Set("Body", msg.Body)
+	v.Set("Body", body)
 
 	res, err := c.smsClient.PostForm(c.smsClient.Host, v)
 	if err != nil {

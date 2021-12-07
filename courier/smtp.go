@@ -54,8 +54,11 @@ func newSMTP(c *config.Config) *gomail.Dialer {
 
 	return dialer
 }
+func (c *courierImpl) SmtpDialer() *gomail.Dialer {
+	return c.smtpDialer
+}
 
-func (c *Courier) QueueEmail(ctx context.Context, t EmailTemplate) (uuid.UUID, error) {
+func (c *courierImpl) QueueEmail(ctx context.Context, t EmailTemplate) (uuid.UUID, error) {
 	recipient, err := t.EmailRecipient()
 	if err != nil {
 		return uuid.Nil, err
@@ -71,7 +74,7 @@ func (c *Courier) QueueEmail(ctx context.Context, t EmailTemplate) (uuid.UUID, e
 		return uuid.Nil, err
 	}
 
-	templateType, err := GetTemplateType(t)
+	templateType, err := GetEmailTemplateType(t)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -97,7 +100,7 @@ func (c *Courier) QueueEmail(ctx context.Context, t EmailTemplate) (uuid.UUID, e
 	return message.ID, nil
 }
 
-func (c *Courier) dispatchEmail(ctx context.Context, msg Message) error {
+func (c *courierImpl) dispatchEmail(ctx context.Context, msg Message) error {
 	from := c.deps.Config(ctx).CourierSMTPFrom()
 	fromName := c.deps.Config(ctx).CourierSMTPFromName()
 	gm := gomail.NewMessage()

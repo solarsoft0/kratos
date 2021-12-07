@@ -61,6 +61,8 @@ func TestStrategy_Login(t *testing.T) {
 	conf.MustSet(config.ViperKeySelfServiceStrategyConfig+"."+string(identity.CredentialsTypeSMS)+".enabled", true)
 	conf.MustSet(config.ViperKeySelfServiceStrategyConfig+"."+string(identity.CredentialsTypePassword)+".enabled", false)
 	conf.MustSet(config.ViperKeyDefaultIdentitySchemaURL, "file://./stub/registration.schema.json")
+	conf.MustSet(config.ViperKeyCourierSMTPURL, "smtp://foo@bar@dev.null/")
+	conf.MustSet(config.ViperKeyCourierSMSHost, "http://foo.url")
 	publicTS, _ := testhelpers.NewKratosServer(t, reg)
 	redirTS := newReturnTs(t, reg)
 
@@ -143,8 +145,8 @@ func TestStrategy_Login(t *testing.T) {
 
 			f := testhelpers.InitializeLoginFlow(t, true, nil, publicTS, false, false)
 
-			assert.Empty(t, getNode(f, "code"))
-			assert.NotEmpty(t, getNode(f, "phone"))
+			assert.Empty(t, getLoginNode(f, "code"))
+			assert.NotEmpty(t, getLoginNode(f, "phone"))
 
 			var values = func(v url.Values) {
 				v.Set("phone", identifier)
@@ -173,8 +175,8 @@ func TestStrategy_Login(t *testing.T) {
 
 			f := testhelpers.InitializeLoginFlow(t, false, nil, publicTS, false, false)
 
-			assert.Empty(t, getNode(f, "code"))
-			assert.NotEmpty(t, getNode(f, "phone"))
+			assert.Empty(t, getLoginNode(f, "code"))
+			assert.NotEmpty(t, getLoginNode(f, "phone"))
 
 			var values = func(v url.Values) {
 				v.Set("phone", identifier)
@@ -205,7 +207,7 @@ func TestStrategy_Login(t *testing.T) {
 	})
 }
 
-func getNode(f *kratos.SelfServiceLoginFlow, nodeName string) *kratos.UiNode {
+func getLoginNode(f *kratos.SelfServiceLoginFlow, nodeName string) *kratos.UiNode {
 	for _, n := range f.Ui.Nodes {
 		if n.Attributes.UiNodeInputAttributes.Name == nodeName {
 			return &n

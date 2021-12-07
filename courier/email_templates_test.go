@@ -18,10 +18,10 @@ func TestGetTemplateType(t *testing.T) {
 		courier.TypeRecoveryValid:       &template.RecoveryValid{},
 		courier.TypeVerificationInvalid: &template.VerificationInvalid{},
 		courier.TypeVerificationValid:   &template.VerificationValid{},
-		courier.TypeTestStub:            &template.TestStub{},
+		courier.TypeTestStub:            &template.TestEmailStub{},
 	} {
 		t.Run(fmt.Sprintf("case=%s", expectedType), func(t *testing.T) {
-			actualType, err := courier.GetTemplateType(tmpl)
+			actualType, err := courier.GetEmailTemplateType(tmpl)
 			require.NoError(t, err)
 			require.Equal(t, expectedType, actualType)
 
@@ -37,7 +37,7 @@ func TestNewEmailTemplateFromMessage(t *testing.T) {
 		courier.TypeRecoveryValid:       template.NewRecoveryValid(conf, &template.RecoveryValidModel{To: "bar", RecoveryURL: "http://foo.bar"}),
 		courier.TypeVerificationInvalid: template.NewVerificationInvalid(conf, &template.VerificationInvalidModel{To: "baz"}),
 		courier.TypeVerificationValid:   template.NewVerificationValid(conf, &template.VerificationValidModel{To: "faz", VerificationURL: "http://bar.foo"}),
-		courier.TypeTestStub:            template.NewTestStub(conf, &template.TestStubModel{To: "far", Subject: "test subject", Body: "test body"}),
+		courier.TypeTestStub:            template.NewTestEmailStub(conf, &template.TestEmailStubModel{To: "far", Subject: "test subject", Body: "test body"}),
 	} {
 		t.Run(fmt.Sprintf("case=%s", tmplType), func(t *testing.T) {
 			tmplData, err := json.Marshal(expectedTmpl)

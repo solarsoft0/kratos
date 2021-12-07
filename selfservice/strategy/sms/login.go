@@ -58,12 +58,16 @@ func (s *Strategy) Login(w http.ResponseWriter, r *http.Request, f *login.Flow, 
 
 	i, _, err := s.d.PrivilegedIdentityPool().FindByCredentialsIdentifier(r.Context(), s.ID(), p.Phone)
 	if err != nil {
+		// If no account was found we're creating new one.
 
 		if !errors.Is(err, sqlcon.ErrNoRows) {
 			return nil, err
 		}
 
+		s.d.Logger().Debug("Received correct SMS code but user is not registered. Registering silently.")
+
 		i = identity.NewIdentity(config.DefaultIdentityTraitsSchemaID)
+
 		i.Traits = identity.Traits(fmt.Sprintf("{\"phone\": \"%s\"}", p.Phone))
 
 		if err := s.d.IdentityValidator().Validate(r.Context(), i); err != nil {

@@ -5,6 +5,8 @@ import (
 	"github.com/benbjohnson/clock"
 	"github.com/gofrs/uuid"
 	"github.com/golang/mock/gomock"
+	"github.com/ory/kratos/courier"
+	courierMock "github.com/ory/kratos/courier/mocks"
 	"github.com/ory/kratos/driver/config"
 	"github.com/ory/kratos/internal"
 	"github.com/ory/kratos/selfservice/flow"
@@ -31,7 +33,7 @@ func TestAuthenticationService_SendCode(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		service sms.SmsAuthenticationService
+		service sms.AuthenticationService
 		flow    sms.Flow
 		phone   string
 		wantErr bool
@@ -39,7 +41,7 @@ func TestAuthenticationService_SendCode(t *testing.T) {
 		{"error if flow is not active",
 			tc.NewSmsAuthenticationService(
 				tc.repoNoCalls(),
-				tc.notifierNoCalls(),
+				tc.courierNoCalls(),
 				clock.NewMock(),
 				tc.smsCode("0000"),
 			),
@@ -50,7 +52,7 @@ func TestAuthenticationService_SendCode(t *testing.T) {
 		{"send code when not sent before",
 			tc.NewSmsAuthenticationService(
 				tc.repoNoCodeCreateCode(),
-				tc.notifier("1234"),
+				tc.courier(),
 				clock.NewMock(),
 				tc.smsCode("0000"),
 			),
@@ -61,7 +63,7 @@ func TestAuthenticationService_SendCode(t *testing.T) {
 		{"block resending if timeout not expired",
 			tc.NewSmsAuthenticationService(
 				tc.repoActiveCode("555", newTime("2021-07-10T12:00:00Z")),
-				tc.notifierNoCalls(),
+				tc.courierNoCalls(),
 				fixClock("2021-07-10T12:00:00Z"),
 				tc.smsCode("0000"),
 			),
@@ -88,7 +90,7 @@ func TestAuthenticationService_VerifyCode(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		service sms.SmsAuthenticationService
+		service sms.AuthenticationService
 		flow    sms.Flow
 		code    string
 		wantErr bool
@@ -96,7 +98,7 @@ func TestAuthenticationService_VerifyCode(t *testing.T) {
 		{"error if flow is not active",
 			tc.NewSmsAuthenticationService(
 				tc.repoNoCalls(),
-				tc.notifierNoCalls(),
+				tc.courierNoCalls(),
 				clock.NewMock(),
 				tc.smsCode("0000"),
 			),
@@ -107,7 +109,7 @@ func TestAuthenticationService_VerifyCode(t *testing.T) {
 		{"code not found or expired",
 			tc.NewSmsAuthenticationService(
 				tc.repoNoCode(),
-				tc.notifierNoCalls(),
+				tc.courierNoCalls(),
 				clock.NewMock(),
 				tc.smsCode("0000"),
 			),
@@ -118,7 +120,7 @@ func TestAuthenticationService_VerifyCode(t *testing.T) {
 		{"code didn't match",
 			tc.NewSmsAuthenticationService(
 				tc.repoActiveCode("0000", newTime("2021-07-10T12:00:00Z")),
-				tc.notifierNoCalls(),
+				tc.courierNoCalls(),
 				fixClock("2021-07-10T12:00:00Z"),
 				tc.smsCode("0000"),
 			),
@@ -129,7 +131,7 @@ func TestAuthenticationService_VerifyCode(t *testing.T) {
 		{"code match",
 			tc.NewSmsAuthenticationService(
 				tc.repoActiveCode("0000", newTime("2021-07-10T12:00:00Z")),
-				tc.notifierNoCalls(),
+				tc.courierNoCalls(),
 				fixClock("2021-07-10T12:00:00Z"),
 				tc.smsCode("0000"),
 			),
@@ -204,13 +206,13 @@ func (tc *testContext) repoNoCalls() sms.CodePersister {
 	return m
 }
 
-func (tc *testContext) notifierNoCalls() sms.NotificationClient {
-	return smsMock.NewMockNotificationClient(tc.controller)
+func (tc *testContext) courierNoCalls() courier.Courier {
+	return courierMock.NewMockCourier(tc.controller)
 }
 
-func (tc *testContext) notifier(phone string) sms.NotificationClient {
-	m := smsMock.NewMockNotificationClient(tc.controller)
-	m.EXPECT().Send(tc.context, phone, gomock.Any())
+func (tc *testContext) courier() courier.Courier {
+	m := courierMock.NewMockCourier(tc.controller)
+	m.EXPECT().QueueSMS(tc.context, gomock.Any())
 	return m
 }
 
@@ -230,15 +232,15 @@ func (s *randomCodeGeneratorStub) Generate(max int) string {
 
 func (tc *testContext) NewSmsAuthenticationService(
 	codePersister sms.CodePersister,
-	notificationClient sms.NotificationClient,
+	courier courier.Courier,
 	clock clock.Clock,
 	randomCodeGenerator sms.RandomCodeGenerator,
-) sms.SmsAuthenticationService {
+) sms.AuthenticationService {
 
 	return sms.NewSmsAuthenticationService(&dependencies{
 		tc.config,
 		codePersister,
-		notificationClient,
+		courier,
 		clock,
 		randomCodeGenerator,
 	})
@@ -251,7 +253,7 @@ func (tc *testContext) smsCode(code string) sms.RandomCodeGenerator {
 type dependencies struct {
 	config              *config.Config
 	codePersister       sms.CodePersister
-	notificationClient  sms.NotificationClient
+	courier             courier.Courier
 	clock               clock.Clock
 	randomCodeGenerator sms.RandomCodeGenerator
 }
@@ -264,9 +266,8 @@ func (d *dependencies) CodePersister() sms.CodePersister {
 	return d.codePersister
 }
 
-func (d *dependencies) SmsNotificationClient() sms.NotificationClient {
-	return d.notificationClient
-}
+//goland:noinspection GoUnusedParameter
+func (d *dependencies) Courier(ctx context.Context) courier.Courier { return d.courier }
 
 //goland:noinspection GoUnusedParameter
 func (d *dependencies) Config(ctx context.Context) *config.Config { return d.config }

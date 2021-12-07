@@ -27,7 +27,7 @@ type EmailTemplate interface {
 	EmailRecipient() (string, error)
 }
 
-func GetTemplateType(t EmailTemplate) (TemplateType, error) {
+func GetEmailTemplateType(t EmailTemplate) (TemplateType, error) {
 	switch t.(type) {
 	case *template.RecoveryInvalid:
 		return TypeRecoveryInvalid, nil
@@ -37,7 +37,7 @@ func GetTemplateType(t EmailTemplate) (TemplateType, error) {
 		return TypeVerificationInvalid, nil
 	case *template.VerificationValid:
 		return TypeVerificationValid, nil
-	case *template.TestStub:
+	case *template.TestEmailStub:
 		return TypeTestStub, nil
 	default:
 		return "", errors.Errorf("unexpected template type")
@@ -71,11 +71,11 @@ func NewEmailTemplateFromMessage(c *config.Config, m Message) (EmailTemplate, er
 		}
 		return template.NewVerificationValid(c, &t), nil
 	case TypeTestStub:
-		var t template.TestStubModel
+		var t template.TestEmailStubModel
 		if err := json.Unmarshal(m.TemplateData, &t); err != nil {
 			return nil, err
 		}
-		return template.NewTestStub(c, &t), nil
+		return template.NewTestEmailStub(c, &t), nil
 	default:
 		return nil, errors.Errorf("received unexpected message template type: %s", m.TemplateType)
 	}

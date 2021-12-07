@@ -1,7 +1,10 @@
 package courier
 
+//go:generate mockgen -destination=mocks/mock_courier.go -package=mocks github.com/ory/kratos/courier Courier
+
 import (
 	"context"
+	"github.com/gofrs/uuid"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -13,6 +16,13 @@ import (
 	gomail "github.com/ory/mail/v3"
 )
 
+type Courier interface {
+	Work(ctx context.Context) error
+	QueueEmail(ctx context.Context, t EmailTemplate) (uuid.UUID, error)
+	QueueSMS(ctx context.Context, t SmsTemplate) (uuid.UUID, error)
+	SmtpDialer() *gomail.Dialer
+}
+
 type (
 	Dependencies interface {
 		PersistenceProvider
@@ -20,26 +30,26 @@ type (
 		config.Provider
 	}
 
-	Courier struct {
+	courierImpl struct {
 		smsClient  *smsClient
 		smtpDialer *gomail.Dialer
 		deps       Dependencies
 	}
 
 	Provider interface {
-		Courier(ctx context.Context) *Courier
+		Courier(ctx context.Context) Courier
 	}
 )
 
-func NewCourier(d Dependencies, c *config.Config) *Courier {
-	return &Courier{
+func NewCourier(d Dependencies, c *config.Config) Courier {
+	return &courierImpl{
 		smsClient:  newSMS(c),
 		smtpDialer: newSMTP(c),
 		deps:       d,
 	}
 }
 
-func (c *Courier) Work(ctx context.Context) error {
+func (c *courierImpl) Work(ctx context.Context) error {
 	errChan := make(chan error)
 	defer close(errChan)
 
@@ -56,7 +66,7 @@ func (c *Courier) Work(ctx context.Context) error {
 	}
 }
 
-func (c *Courier) watchMessages(ctx context.Context, errChan chan error) {
+func (c *courierImpl) watchMessages(ctx context.Context, errChan chan error) {
 	for {
 		if err := backoff.Retry(func() error {
 			return c.DispatchQueue(ctx)
@@ -68,7 +78,7 @@ func (c *Courier) watchMessages(ctx context.Context, errChan chan error) {
 	}
 }
 
-func (c *Courier) DispatchMessage(ctx context.Context, msg Message) error {
+func (c *courierImpl) DispatchMessage(ctx context.Context, msg Message) error {
 	switch msg.Type {
 	case MessageTypeEmail:
 		if err := c.dispatchEmail(ctx, msg); err != nil {
@@ -79,7 +89,7 @@ func (c *Courier) DispatchMessage(ctx context.Context, msg Message) error {
 			return err
 		}
 	default:
-		return errors.New("received unexpected message type")
+		return errors.Errorf("received unexpected message type: %d", msg.Type)
 	}
 
 	if err := c.deps.CourierPersister().SetMessageStatus(ctx, msg.ID, MessageStatusSent); err != nil {
@@ -97,10 +107,10 @@ func (c *Courier) DispatchMessage(ctx context.Context, msg Message) error {
 		WithField("message_subject", msg.Subject).
 		Debug("Courier sent out message.")
 
-	return errors.Errorf("received unexpected message type: %d", msg.Type)
+	return nil
 }
 
-func (c *Courier) DispatchQueue(ctx context.Context) error {
+func (c *courierImpl) DispatchQueue(ctx context.Context) error {
 	if len(c.smtpDialer.Host) == 0 {
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Courier tried to deliver an email but courier.smtp_url is not set!"))
 	}

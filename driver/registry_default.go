@@ -128,8 +128,7 @@ type RegistryDefault struct {
 
 	selfserviceLinkSender *link.Sender
 
-	selfserviceSmsAuthenticationService *sms.AuthenticationService
-	selfserviceSmsNotificationClient    sms.NotificationClient
+	selfserviceSmsAuthenticationService sms.AuthenticationService
 	selfserviceSmsRandomCodeGenerator   sms.RandomCodeGenerator
 
 	selfserviceRecoveryErrorHandler *recovery.ErrorHandler
@@ -586,7 +585,7 @@ func (m *RegistryDefault) SetPersister(p persistence.Persister) {
 	m.persister = p
 }
 
-func (m *RegistryDefault) Courier(ctx context.Context) *courier.Courier {
+func (m *RegistryDefault) Courier(ctx context.Context) courier.Courier {
 	return courier.NewCourier(m, m.Config(ctx))
 }
 

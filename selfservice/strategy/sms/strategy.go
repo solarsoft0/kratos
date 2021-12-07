@@ -3,6 +3,7 @@ package sms
 import (
 	"github.com/ory/kratos/driver/config"
 	"github.com/ory/kratos/identity"
+	"github.com/ory/kratos/selfservice/flow/registration"
 	"github.com/ory/kratos/session"
 	"github.com/ory/kratos/ui/node"
 	"github.com/ory/kratos/x"
@@ -17,7 +18,8 @@ type strategyDependencies interface {
 	identity.ManagementProvider
 	identity.ValidationProvider
 	x.LoggingProvider
-	SmsAuthenticationServiceProvider
+	AuthenticationServiceProvider
+	registration.HandlerProvider
 }
 
 type Strategy struct {
